@@ -1,0 +1,109 @@
+name: Runner A/B Benchmark
+
+# TEMPORARY measurement harness. Triggers ONLY on pushes to bench/** branches,
+# so it never runs on a PR, on main, or alongside real CI. Delete the branch
+# when the measurement is done.
+on:
+  push:
+    branches: ['bench/**']
+
+permissions:
+  contents: read
+
+jobs:
+  # Arm A: GitHub-hosted. Reps run in parallel — the hosted pool has headroom
+  # (429 sampled jobs peaked at 28 concurrent, 2-second median queue).
+  rust-hosted:
+    name: rust (hosted) rep${{ matrix.rep }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rep: [1, 2, 3, 4, 5]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ARM: hosted
+      REP: ${{ matrix.rep }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Machine facts + microbenchmarks
+        run: bash .github/bench/machine-facts.sh
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        id: cache
+      - uses: taiki-e/install-action@nextest
+      - name: Build test binaries (timed)
+        run: |
+          start=$(date +%s)
+          cargo nextest run --workspace --profile ci --no-run
+          echo "BENCH arm=$ARM rep=$REP phase=build wall_s=$(( $(date +%s) - start ))"
+          echo "BENCH arm=$ARM rep=$REP cargo_cache_hit=${{ steps.cache.outputs.cache-hit }}"
+      - name: Run tests (timed)
+        run: |
+          set -o pipefail
+          start=$(date +%s)
+          cargo nextest run --workspace --profile ci 2>&1 | tee /tmp/nextest.log
+          echo "BENCH arm=$ARM rep=$REP phase=test wall_s=$(( $(date +%s) - start ))"
+          sed -e 's/\x1b\[[0-9;]*m//g' /tmp/nextest.log \
+            | grep -oE 'Summary \[ *[0-9.]+s\] *[0-9]+ tests run' | tail -1 \
+            | awk -v a="$ARM" -v r="$REP" '{gsub(/[^0-9.]/,"",$2); print "BENCH arm="a" rep="r" nextest_s="$2" tests="$3}'
+
+  # Arm B: the dedicated runner. max-parallel: 1 is deliberate — it holds ONE
+  # of loom's three heavy slots at a time (so it barely disturbs real CI) and
+  # stops the five reps from contending with each other on the shared
+  # c7i.8xlarge, which would bias this arm slow.
+  rust-heavy:
+    name: rust (heavy) rep${{ matrix.rep }}
+    if: github.repository == 'rjwalters/loom'
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        rep: [1, 2, 3, 4, 5]
+    runs-on: ["self-hosted", "heavy"]
+    timeout-minutes: 30
+    env:
+      ARM: heavy
+      REP: ${{ matrix.rep }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Machine facts + microbenchmarks
+        run: bash .github/bench/machine-facts.sh
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        id: cache
+      - uses: taiki-e/install-action@nextest
+      - name: Build test binaries (timed)
+        run: |
+          start=$(date +%s)
+          cargo nextest run --workspace --profile ci --no-run
+          echo "BENCH arm=$ARM rep=$REP phase=build wall_s=$(( $(date +%s) - start ))"
+          echo "BENCH arm=$ARM rep=$REP cargo_cache_hit=${{ steps.cache.outputs.cache-hit }}"
+      - name: Run tests (timed)
+        run: |
+          set -o pipefail
+          start=$(date +%s)
+          cargo nextest run --workspace --profile ci 2>&1 | tee /tmp/nextest.log
+          echo "BENCH arm=$ARM rep=$REP phase=test wall_s=$(( $(date +%s) - start ))"
+          sed -e 's/\x1b\[[0-9;]*m//g' /tmp/nextest.log \
+            | grep -oE 'Summary \[ *[0-9.]+s\] *[0-9]+ tests run' | tail -1 \
+            | awk -v a="$ARM" -v r="$REP" '{gsub(/[^0-9.]/,"",$2); print "BENCH arm="a" rep="r" nextest_s="$2" tests="$3}'
+
+  # Capacity probe: eight 15-second jobs. #6624 promised "eight ephemeral
+  # 4-vCPU container slots"; 159 observed jobs only ever used three. Max
+  # concurrency here is a lower bound on what loom can actually get.
+  slots:
+    name: slot probe ${{ matrix.n }}
+    if: github.repository == 'rjwalters/loom'
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [1, 2, 3, 4, 5, 6, 7, 8]
+    runs-on: ["self-hosted", "heavy"]
+    timeout-minutes: 10
+    steps:
+      - name: Occupy a slot briefly
+        run: |
+          echo "BENCH slot probe=${{ matrix.n }} runner=$RUNNER_NAME start=$(date -u +%FT%T.%NZ)"
+          sleep 15
+          echo "BENCH slot probe=${{ matrix.n }} runner=$RUNNER_NAME end=$(date -u +%FT%T.%NZ)"
