@@ -15,7 +15,7 @@ jobs:
   # (429 sampled jobs peaked at 28 concurrent, 2-second median queue).
   rust-hosted:
     name: rust (hosted) rep${{ matrix.rep }}
-    if: contains(github.event.head_commit.message, '[full-ab]')
+    if: contains(github.event.head_commit.message, 'RUNFULLAB')
     strategy:
       fail-fast: false
       matrix:
@@ -55,7 +55,7 @@ jobs:
   # c7i.8xlarge, which would bias this arm slow.
   rust-heavy:
     name: rust (heavy) rep${{ matrix.rep }}
-    if: github.repository == 'rjwalters/loom' && contains(github.event.head_commit.message, '[full-ab]')
+    if: github.repository == 'rjwalters/loom' && contains(github.event.head_commit.message, 'RUNFULLAB')
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -95,7 +95,7 @@ jobs:
   # concurrency here is a lower bound on what loom can actually get.
   slots:
     name: slot probe ${{ matrix.n }}
-    if: github.repository == 'rjwalters/loom' && contains(github.event.head_commit.message, '[full-ab]')
+    if: github.repository == 'rjwalters/loom' && contains(github.event.head_commit.message, 'RUNFULLAB')
     strategy:
       fail-fast: false
       matrix:
@@ -110,7 +110,7 @@ jobs:
           echo "BENCH slot probe=${{ matrix.n }} runner=$RUNNER_NAME end=$(date -u +%FT%T.%NZ)"
 
   # Cheap disk/state probes — one per arm, ~20s each. These run on every push to
-  # this branch; the A/B arms above need '[full-ab]' in the commit message.
+  # this branch; the A/B arms above need the full-run marker in the commit message.
   disk-hosted:
     name: disk (hosted)
     runs-on: ubuntu-latest
