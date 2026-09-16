@@ -26,7 +26,7 @@ jobs:
   # not gate them — its only side effect is cancelling stale runs elsewhere.
   cancel-superseded:
     name: Cancel Superseded Runs (same ref)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     permissions:
       actions: write
@@ -55,7 +55,7 @@ jobs:
   # Detect which file groups changed to skip irrelevant jobs on PRs
   changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     if: github.event_name == 'pull_request'
     permissions:
@@ -116,7 +116,7 @@ jobs:
     name: Rust Linting & Build Check
     needs: changes
     if: always() && (github.event_name == 'push' || needs.changes.outputs.backend == 'true')
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -132,7 +132,7 @@ jobs:
     name: Rust Unit Tests
     needs: changes
     if: always() && (github.event_name == 'push' || needs.changes.outputs.backend == 'true')
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -160,7 +160,7 @@ jobs:
     name: Rust OTLP Feature Build & Test
     needs: changes
     if: always() && (github.event_name == 'push' || needs.changes.outputs.backend == 'true')
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -184,7 +184,7 @@ jobs:
     name: MCP Server Build
     needs: changes
     if: always() && (github.event_name == 'push' || needs.changes.outputs.mcp == 'true')
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -211,7 +211,7 @@ jobs:
     # `pretest` hook already runs `scripts/ensure-web-dist.sh` first, since
     # Wrangler will not parse `wrangler.toml` (and therefore Miniflare will not
     # boot) until `web/dist/` exists.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -232,7 +232,7 @@ jobs:
     name: CLAUDE.md Line Budget
     # Cheap structural check; always runs (CLAUDE.md is prepended to every
     # agent's context, so its size is load-bearing — see #4014).
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -247,7 +247,7 @@ jobs:
     # 79% of all Rust LOC, at a ~20:1 add-to-delete ratio. This does NOT demand
     # an up-front refactor — it freezes already-oversized files at their current
     # size so they cannot grow further. See .loom/docs/file-size-policy.md.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v7
       # Self-test first: a ratchet that silently stops measuring reports OK
@@ -271,7 +271,7 @@ jobs:
     # gate for every tracked file, and must NOT be path-filtered — the
     # corruption can land in any file, including one whose path group the
     # PR did not otherwise touch.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -357,7 +357,7 @@ jobs:
     # from defaults/.loom/CLAUDE.md's agents-md:include marker ranges — this
     # fails if the checked-in artifact is stale, keeping instructions
     # single-source (#4479, epic #4167).
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -375,7 +375,7 @@ jobs:
     # marker gate (#6499): a content-level check on every tracked config
     # tier, independent of changed-path filtering, so it catches a
     # newly-committed offender wherever it lands.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -393,7 +393,7 @@ jobs:
     # twice (safehouse.md, token-pool.md) before anything caught it (#4841).
     # The self-test step regression-tests the checker itself against a
     # synthetic fixture reproducing that exact case.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -410,7 +410,7 @@ jobs:
     # sections across ~9k lines and had none (#7739). A stale TOC is worse than
     # no TOC, because it claims a section is absent when it is not — hence
     # generated-and-checked rather than hand-maintained.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v7
       - name: Check generated TOCs are current
@@ -429,7 +429,7 @@ jobs:
     # copies against their own already-divergent baselines (#7416). The
     # self-test step regression-tests the checker itself against a synthetic
     # fixture reproducing that exact case.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -449,7 +449,7 @@ jobs:
     # under defaults/ must be a public or placeholder identifier. The
     # self-test step regression-tests the checker itself against synthetic
     # clean/dirty fixtures.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -470,7 +470,7 @@ jobs:
     # "current" while installed surfaces silently diverge (#5874, surfaced by
     # #5846 changing 5 role prompts + a doc with no version bump).
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       # fetch-depth: 0 + an explicit head sha (instead of the default
@@ -503,7 +503,7 @@ jobs:
     # The self-test step regression-tests the checker itself against a
     # synthetic fixture (dangling link, fenced-code-block example, valid
     # link, templated placeholder).
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -532,7 +532,7 @@ jobs:
     # fetch failure (rate limit, outage) is reported "inconclusive" rather
     # than failing, and continue-on-error covers any other unexpected script
     # failure.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     continue-on-error: true
     steps:
@@ -554,7 +554,7 @@ jobs:
     # when the block is converged, so this needs zero new Rust code: build
     # the binary, run update-gitignore against the checked-out repo, then
     # diff .gitignore against the PR's committed version.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -570,7 +570,7 @@ jobs:
     needs: changes
     if: always() && (github.event_name == 'push' || needs.changes.outputs.scripts == 'true')
     # Portable across GNU/BSD sed (temp-file + mv idiom) — runs on ubuntu (#3515)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -606,7 +606,7 @@ jobs:
     # shim on a temp PATH, so the real Codex CLI is never installed or invoked
     # and no credential is required. `codex` is deliberately NOT on PATH here,
     # which also exercises the missing-binary (exit 127) path.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -709,7 +709,7 @@ jobs:
     # previously not referenced by CI at all). All 8 suites are hermetic
     # (fake/stub binaries or local python3 AST fixtures, no live network or
     # forge calls) and run in well under a second each.
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -728,7 +728,7 @@ jobs:
     name: loom-worker Image Smoke Test
     needs: changes
     if: always() && (github.event_name == 'push' || needs.changes.outputs.docker == 'true')
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
@@ -764,7 +764,7 @@ jobs:
     # published anywhere to pull from, and this keeps the check hermetic.
     needs: changes
     if: always() && (github.event_name == 'push' || needs.changes.outputs.docker == 'true')
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
